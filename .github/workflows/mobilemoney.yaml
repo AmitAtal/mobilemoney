@@ -1,1 +1,39 @@
 name: MobileMoney Build and Deployment Workflow
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          echo "Build Job is going on"
+          sleep 20
+  test:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - run: |
+          echo "test Job is going on"
+          sleep 20
+  oast-surge:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Clone the Repository
+        uses: actions/checkout@v2
+
+      - name: Install Retire.JS
+        run: npm install -g retire
+
+      - name: Install Node Modules
+        run: npm install
+
+      - name: Install surge
+        run: npm install --global surge
+
+  deployment:
+    runs-on: ubuntu-latest
+    needs: sast-trufflehog
+    steps:
+      - run: |
+          echo "deployment Job is going on"
+          sleep 20
