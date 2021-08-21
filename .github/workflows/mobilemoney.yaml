@@ -191,3 +191,23 @@ jobs:
           name: nmap-results
           path: nmap-output.xml
         if: always()        
+
+nikto-scan:
+    runs-on: ubuntu-latest
+    needs: deployment
+    steps:
+      - name: Updated Packages
+        run: sudo apt-get update
+      
+      - name: Install Nmap
+        run: sudo apt-get install nikto -y
+
+      - name: Scan the Domain
+        run: nikto -o nikto-output.html -Format html -h ${{ secrets.SURGE_DOMAIN }}
+
+      - name: Upload the Scan Report
+        uses: actions/upload-artifact@v2
+        with:
+          name: nikto-results
+          path: nikto-output.html
+        if: always()                
