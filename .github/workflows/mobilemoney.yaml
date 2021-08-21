@@ -1,39 +1,85 @@
 name: MobileMoney Build and Deployment Workflow
 on: [push]
 jobs:
-  build:
+  unit-testing:
     runs-on: ubuntu-latest
     steps:
-      - run: |
-          echo "Build Job is going on"
-          sleep 10
-  test:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - run: |
-          echo "test Job is going on"
-          sleep 20
-  deployement-surge:
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Clone the Repository
+      - name: Checkout the Code
         uses: actions/checkout@v2
-
-      - name: Install Retire.JS
-        run: npm install -g retire
 
       - name: Install Node Modules
         run: npm install
 
-      - name: Install surge
-        run: npm install --global surge
+      - name: Run the Test Case
+        run: npm test
+
+  code-coverage:
+    runs-on: ubuntu-latest
+    needs: unit-testing
+    steps:
+      - name: Checkout the Code
+        uses: actions/checkout@v2
+
+      - name: Install Node Modules
+        run: npm install
+
+      - name: Run the code Coverage
+        run: npm test -- --coverage
+        env:
+          CI: true
+      
+      - name: Upload the Test Coverage Results
+        uses: actions/upload-artifact@v1
+        with:
+          name: code-coverage-files
+          path: coverage    
+
+  build:
+    runs-on: ubuntu-latest
+    needs: code-coverage
+    steps:
+      - name: Checkout the Code
+        uses: actions/checkout@v2
+
+      - name: Install Node Modules
+        run: npm install
+
+      - name: Run the Build
+        run: npm run build 
+      
+      - name: Upload the Test Coverage Results
+        uses: actions/upload-artifact@v2
+        with:
+          name: build-files
+          path: build
+        if: always()       
+
+
+  functonaltesting:
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Functional Testing
+        run: echo "Functional Testing"
+
 
   deployment:
     runs-on: ubuntu-latest
-    needs: deployement-surge
+    needs: functonaltesting
     steps:
-      - run: |
-          echo "deployment Job is going on"
-          sleep 20
+      - name: Checkout the Code
+        uses: actions/checkout@v2
+
+      - name: Install Surge
+        run: npm install -g surge
+   
+      - name: Download the Build Folder from Previous Stage
+        uses: actions/download-artifact@v2
+        with:
+          name: build-files
+
+      - name: Debugging Verify the Path
+        run: ls -R
+
+      - name: Push the files to Surge Server
+        run: surge ./ ${{ secrets.SURGE_DOMAIN }} --token ${{ secrets.SURGE_TOKEN }}
